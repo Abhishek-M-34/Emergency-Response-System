@@ -1368,6 +1368,19 @@ window.addEventListener('load', () => {
     initializeApp();
   }
 });  
+// Expose all action functions globally
+window.changeStatus = changeStatus;
+window.setSeverity = setSeverity;
+window.requestEscalation = requestEscalation;
+window.showAssignModal = showAssignModal;
+window.toggleAssignStaff = toggleAssignStaff;
+window.confirmAssignment = confirmAssignment;
+window.closeAssignModal = closeAssignModal;
+window.openLogModal = openLogModal;
+window.closeLogModal = closeLogModal;
+window.downloadLog = downloadLog;
+window.acknowledgeWarning = acknowledgeWarning;
+window.assignModalAlertId = assignModalAlertId;
 </script>
 </body>
 </html>
