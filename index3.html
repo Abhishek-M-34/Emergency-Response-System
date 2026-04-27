@@ -375,6 +375,19 @@
     .severity-grid { grid-template-columns:1fr; }
     .comms-messages { max-height: 200px; }
   }
+  .message-item.system-message {
+  border-left-color: #f1c40f;
+  background: rgba(241,196,15,0.06);
+}
+.message-item.system-message .message-sender {
+  color: #f1c40f;
+}
+.global-warning-banner.type-medical {
+  background: linear-gradient(135deg, #e67e22, #d35400) !important;
+}
+.global-warning-banner.type-security {
+  background: linear-gradient(135deg, #2980b9, #1a5276) !important;
+}
 </style>
 </head>
 <body>
@@ -491,7 +504,9 @@
     </div>
   </div>
   <div style="margin-bottom:1.5rem;">
-    <button class="action-btn" onclick="openBroadcastModal()" style="background:#8e44ad;color:#fff;border:none;font-size:14px;padding:10px 20px;">📢 Broadcast Warning</button>
+    <button class="action-btn"
+    onclick="openBroadcastModal()" style="background:#8e44ad;color:#fff;border:none;font-size:14px;padding:10px 20px;">📢 Broadcast Warning</button>
+    <button class="action-btn" onclick="window.location.href='dashboard.html'" style="background:#5dade2;color:#fff;border:none;font-size:14px;padding:10px 20px;margin-left:10px;">📊 View Dashboard</button>
   </div>
   <div class="alerts-list" id="ec-alerts-list">
     <div class="empty-state" id="ec-empty-state"><div class="empty-icon">📋</div><p>No emergency alerts yet.<br>Alerts from guests will appear here in real time.</p></div>
@@ -589,6 +604,7 @@
   let currentLogAlertId = null;
   let historyOpen = true;
   let commsMessages = [];
+  let globalWarningType = '';
 
   const typeMap = {
     'Medical Emergency': { cls: 'medical', icon: '🏥' },
@@ -615,56 +631,82 @@
 
   // --- Communication Portal Functions (NEW) ---
   function loadCommsMessages() {
-    try {
-      const saved = localStorage.getItem(COMMS_STORAGE_KEY);
-      commsMessages = saved ? JSON.parse(saved) : [];
-    } catch(e) { commsMessages = []; }
-  }
+  try {
+    const saved = localStorage.getItem(COMMS_STORAGE_KEY);
+    commsMessages = saved ? JSON.parse(saved) : [];
+    // migrate old messages
+    commsMessages.forEach(m => {
+      if (!m.createdAt) m.createdAt = 0; // mark as very old, will be cleaned
+    });
+    saveCommsMessages(); // optional – save migration
+  } catch(e) { commsMessages = []; }
+}
   function saveCommsMessages() {
     localStorage.setItem(COMMS_STORAGE_KEY, JSON.stringify(commsMessages));
   }
-  function sendCommsMessage(senderType, staffIdParam) {
-    let message = '';
-    if (senderType === 'EmergencyControl') {
-      const input = document.getElementById('ec-comms-input');
-      if (!input) return;
-      message = input.value.trim();
-      if (!message) return;
-      input.value = '';
-    } else {
-      const input = document.getElementById('staff-comms-input');
-      if (!input) return;
-      message = input.value.trim();
-      if (!message) return;
-      input.value = '';
-    }
-    const senderName = senderType === 'EmergencyControl' ? 'Emergency Control' : `Staff ${staffIdParam || currentStaffId}`;
-    const newMsg = {
-      id: Date.now(),
-      sender: senderName,
-      senderType: senderType,
-      text: message,
-      timestamp: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
-    };
-    commsMessages.push(newMsg);
-    saveCommsMessages();
-    renderCommsPanels();
+function sendCommsMessage(senderType, staffIdParam) {
+  let message = '';
+  if (senderType === 'EmergencyControl') {
+    const input = document.getElementById('ec-comms-input');
+    if (!input) return;
+    message = input.value.trim();
+    if (!message) return;
+    input.value = '';
+  } else {
+    const input = document.getElementById('staff-comms-input');
+    if (!input) return;
+    message = input.value.trim();
+    if (!message) return;
+    input.value = '';
   }
-  function renderCommsPanels() {
-    const ecContainer = document.getElementById('ec-comms-messages');
-    const staffContainer = document.getElementById('staff-comms-messages');
-    if (!ecContainer && !staffContainer) return;
-    const sorted = [...commsMessages].reverse();
-    const buildHTML = (msgs) => {
-      if (msgs.length === 0) return '<div style="text-align:center;padding:1rem;color:rgba(255,255,255,0.3);">No messages yet. Start a conversation.</div>';
-      return msgs.map(m => `<div class="message-item ${m.senderType === 'Staff' ? 'staff-message' : ''}">
-        <div class="message-header"><span class="message-sender">${escapeHtml(m.sender)}</span><span class="message-time">${m.timestamp}</span></div>
+  const senderName = senderType === 'EmergencyControl' ? 'Emergency Control' : `Staff ${staffIdParam || currentStaffId}`;
+  const newMsg = {
+    id: Date.now(),
+    sender: senderName,
+    senderType: senderType,
+    text: message,
+    timestamp: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    createdAt: Date.now()   // ← add this line
+  };
+  commsMessages.push(newMsg);
+  saveCommsMessages();
+  renderCommsPanels();
+}
+function addSystemMessage(text, alertId = null) {
+  const msg = {
+    id: Date.now(),
+    sender: 'System',
+    senderType: 'System',
+    text: text,
+    timestamp: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    createdAt: Date.now(),
+    alertId: alertId
+  };
+  commsMessages.push(msg);
+  saveCommsMessages();
+  renderCommsPanels();
+}
+function renderCommsPanels() {
+  const ecContainer = document.getElementById('ec-comms-messages');
+  const staffContainer = document.getElementById('staff-comms-messages');
+  if (!ecContainer && !staffContainer) return;
+  const sorted = [...commsMessages].reverse();
+  const buildHTML = (msgs) => {
+    if (msgs.length === 0) return '<div style="text-align:center;padding:1rem;color:rgba(255,255,255,0.3);">No messages yet.</div>';
+    return msgs.map(m => {
+      const displayTime = m.createdAt
+        ? new Date(m.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
+        : m.timestamp;
+      const extraClass = m.senderType === 'Staff' ? 'staff-message' : (m.senderType === 'System' ? 'system-message' : '');
+      return `<div class="message-item ${extraClass}">
+        <div class="message-header"><span class="message-sender">${escapeHtml(m.sender)}</span><span class="message-time">${displayTime}</span></div>
         <div class="message-text">${escapeHtml(m.text)}</div>
-      </div>`).join('');
-    };
-    if (ecContainer) ecContainer.innerHTML = buildHTML(sorted);
-    if (staffContainer) staffContainer.innerHTML = buildHTML(sorted);
-  }
+      </div>`;
+    }).join('');
+  };
+  if (ecContainer) ecContainer.innerHTML = buildHTML(sorted);
+  if (staffContainer) staffContainer.innerHTML = buildHTML(sorted);
+}
   function escapeHtml(str) {
     return str.replace(/[&<>]/g, function(m) {
       if (m === '&') return '&amp;';
@@ -673,6 +715,17 @@
       return m;
     });
   }
+  function cleanOldMessages() {
+  const now = Date.now();
+  const threeHours = 3 * 60 * 60 * 1000;
+  commsMessages = commsMessages.filter(m => {
+    // Keep messages without createdAt (migration) or younger than 3 hours
+    if (!m.createdAt) return true;   // you can change to false if you want to delete them
+    return (now - m.createdAt) < threeHours;
+  });
+  saveCommsMessages();
+  renderCommsPanels();
+}
 
   // --- Existing functions (unchanged except integration calls) ---
   function initializeApp() {
@@ -685,6 +738,8 @@
     renderGlobalWarningBanner();
     renderGuestHistory();
     renderCommsPanels();
+    cleanOldMessages();
+setInterval(cleanOldMessages, 5 * 60 * 1000);
   }
 
   function switchRole(role) {
@@ -771,22 +826,31 @@
   function dismissGlobalWarning() {
     if (currentRole !== 'EmergencyControl') { alert('Only Emergency Control can dismiss this warning.'); return; }
     globalWarningActive = false;
+    globalWarningType = '';
     globalWarningReason = '';
     renderGlobalWarningBanner();
   }
 
   function renderGlobalWarningBanner() {
-    const banner = document.getElementById('global-warning-banner');
-    const dismissBtn = document.getElementById('global-warning-dismiss-btn');
-    const text = document.getElementById('global-warning-text');
-    if (globalWarningActive) {
-      banner.classList.add('active');
-      text.textContent = globalWarningReason || '🚨 NATURAL DISASTER WARNING — Act according to emergency procedures';
-      dismissBtn.classList.toggle('hidden', currentRole !== 'EmergencyControl');
-    } else {
-      banner.classList.remove('active');
-    }
+  const banner = document.getElementById('global-warning-banner');
+  const dismissBtn = document.getElementById('global-warning-dismiss-btn');
+  const text = document.getElementById('global-warning-text');
+
+  if (globalWarningActive) {
+    // Apply type class
+    banner.className = 'global-warning-banner active';
+    if (globalWarningType === 'Medical Emergency') {
+      banner.classList.add('type-medical');
+    } else if (globalWarningType === 'Security Issue') {
+      banner.classList.add('type-security');
+    } // Fire and Natural keep the default red
+
+    text.textContent = globalWarningReason || '🚨 EMERGENCY WARNING';
+    dismissBtn.classList.toggle('hidden', currentRole !== 'EmergencyControl');
+  } else {
+    banner.className = 'global-warning-banner';  // remove all type classes
   }
+}
 
   function playBroadcastSound() {
     try {
@@ -844,6 +908,7 @@
     pendingAlertId = alertObj.id;
     saveAlerts();
     playNotificationSound();
+    addSystemMessage(`🚨 ${type} reported at ${selectedLocation}.`);
     showFeedback();
     renderAllPanels();
     setTimeout(() => {
@@ -1042,33 +1107,51 @@
   function openBroadcastModal() { document.getElementById('broadcast-modal').classList.add('active'); }
   function closeBroadcastModal() { document.getElementById('broadcast-modal').classList.remove('active'); }
 
-  function confirmBroadcast() {
-    const type = document.getElementById('broadcast-type').value;
-    const location = document.getElementById('broadcast-location').value.trim() || 'Hotel-wide';
-    const message = document.getElementById('broadcast-message').value.trim();
-    const now = new Date();
-    const alertObj = {
-      id: Date.now(), type, location, time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
-      status:'Pending', source:'EmergencyControl', confidence:'Verified', escalation:null,
-      escalationRequested:false, assignedTo:[], zones:[location], reports:[], broadcast:true,
-      acknowledgedByGuest:false, message: message || '', guestSeverity: 'Medium'
-    };
-    alerts.unshift(alertObj);
-    saveAlerts();
-    if (type === 'Natural Disaster') {
-      globalWarningActive = true;
-      globalWarningReason = '🚨 NATURAL DISASTER WARNING — Act according to emergency procedures';
-      playBroadcastSound();
-    } else if (type === 'Fire Emergency') {
-      globalWarningActive = true;
-      globalWarningReason = '🔥 FIRE EMERGENCY — Evacuate according to staff instructions';
-      playBroadcastSound();
-    } else {
-      playNotificationSound();
-    }
-    renderAllPanels();
-    closeBroadcastModal();
+function confirmBroadcast() {
+  const type = document.getElementById('broadcast-type').value;
+  const location = document.getElementById('broadcast-location').value.trim() || 'Hotel-wide';
+  const message = document.getElementById('broadcast-message').value.trim();
+  const now = new Date();
+  const alertObj = {
+    id: Date.now(), type, location, time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+    status:'Pending', source:'EmergencyControl', confidence:'Verified', escalation:null,
+    escalationRequested:false, assignedTo:[], zones:[location], reports:[], broadcast:true,
+    acknowledgedByGuest:false, message: message || '', guestSeverity: 'Medium'
+  };
+  alerts.unshift(alertObj);
+  saveAlerts();
+
+  // Activate global warning for all types
+  globalWarningActive = true;
+  globalWarningType = type;   // remember which type
+
+  // Build warning message
+  let warningText = '';
+  if (type === 'Natural Disaster') {
+    warningText = '🚨 NATURAL DISASTER WARNING — Act according to emergency procedures';
+  } else if (type === 'Fire Emergency') {
+    warningText = '🔥 FIRE EMERGENCY — Evacuate according to staff instructions';
+  } else if (type === 'Medical Emergency') {
+    warningText = '🏥 MEDICAL EMERGENCY — Medical staff, please respond immediately';
+  } else if (type === 'Security Issue') {
+    warningText = '🔒 SECURITY ALERT — Security team, please investigate';
   }
+
+  // Append location and optional message
+  warningText += ` | Location: ${location}`;
+  if (message) warningText += ` | ${message}`;
+  globalWarningReason = warningText;
+
+  // Play appropriate sound
+  if (type === 'Natural Disaster' || type === 'Fire Emergency') {
+    playBroadcastSound();
+  } else {
+    playNotificationSound();   // still audible, but softer
+  }
+
+  renderAllPanels();
+  closeBroadcastModal();
+}
 
   function renderAllPanels() {
     const prev = currentRole;
@@ -1093,6 +1176,7 @@
     if (!alert) return;
     if (newStatus === 'Responding' && currentRole === 'Staff' && !alert.assignedTo.includes(currentStaffId))
       alert.assignedTo.push(currentStaffId);
+    addSystemMessage(`🛡️ ${currentStaffId} is now responding`);
     if (newStatus === 'Escalated' && currentRole === 'EmergencyControl') {
       alert.escalation = escalationMap[alert.type] || 'Police';
       if (alert.type === 'Fire Emergency') {
@@ -1104,6 +1188,7 @@
     }
     if (newStatus === 'Resolved' && !alert.resolvedAt) {
       alert.resolvedAt = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      addSystemMessage(`✅ Alert has been resolved`);
     }
     alert.status = newStatus;
     saveAlerts();
@@ -1161,9 +1246,10 @@
         if ((a.escalationRequested || (a.reports && a.reports.some(r => r.severity === 'Critical')) || a.guestSeverity === 'High') && !a.escalation && a.status !== 'Escalated')
           escalateBtn = `<button class="action-btn" onclick="changeStatus(${a.id}, 'Escalated')" style="background:rgba(192,57,43,0.2);color:#c0392b;border:1px solid rgba(192,57,43,0.35);margin-top:4px;width:100%;font-size:11px;">Escalate</button>`;
         if (a.type === 'Natural Disaster' && a.status !== 'Resolved') evacuateBtn = `<button class="action-btn btn-evacuate" onclick="triggerEvacuation()" style="width:100%;margin-top:4px;">🚨 Trigger Evacuation</button>`;
-        resolveBtn = `<button class="action-btn btn-resolve" onclick="changeStatus(${a.id}, 'Resolved')" style="margin-top:4px;width:100%;font-size:11px;">✓ Resolve</button>`;
-      }
-
+resolveBtn = a.status === 'Resolved'
+  ? `<button class="action-btn" disabled style="background:rgba(46,204,113,0.3); color:#2ecc71; border:1px solid rgba(46,204,113,0.35); margin-top:4px; width:100%; font-size:11px; cursor:default;">✓ Resolved</button>`
+  : `<button class="action-btn btn-resolve" onclick="changeStatus(${a.id}, 'Resolved')" style="margin-top:4px;width:100%;font-size:11px;">✓ Resolve</button>`;      }
+    
       const multipleLabel = alerts.filter(x => x.type === a.type).length > 1 ? `<div class="unverified-label">🚨 Multiple alerts detected</div>` : '';
       const confidenceLabel = a.confidence === 'Unverified' ? `<span class="status-pill status-unverified">⚠️ Unverified</span>` : `<span class="status-pill" style="background:rgba(46,204,113,0.2);color:#2ecc71;">✅ Verified</span>`;
       const escalationLabel = a.escalation ? `<span class="status-pill status-escalated">🚨 Escalated to ${a.escalation}</span>` : (a.escalationRequested ? `<span class="status-pill" style="background:rgba(241,196,15,0.2);color:#f1c40f;">🚨 Escalation Requested</span>` : '');
@@ -1216,7 +1302,12 @@
     else { alertObj.assignedTo.push(staffId); btn.classList.add('selected'); }
   }
 
-  function confirmAssignment() { saveAlerts(); renderAllPanels(); closeAssignModal(); }
+  function confirmAssignment() { saveAlerts(); renderAllPanels();
+     const alert = alerts.find(a => a.id === assignModalAlertId);
+if (alert && alert.assignedTo.length) {
+  addSystemMessage(`📌 Alert assigned to ${alert.assignedTo.join(', ')}`);
+}
+closeAssignModal(); }
   function closeAssignModal() { document.getElementById('assign-modal').classList.remove('active'); assignModalAlertId = null; }
 
   document.addEventListener('DOMContentLoaded', initializeApp);
