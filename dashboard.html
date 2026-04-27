@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Response Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #1a1a3e, #24243e);
+      color: #e8e8f0;
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+    }
+    .dashboard {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1.2rem;
+      text-align: center;
+    }
+    .stat-card .label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 0.5rem;
+    }
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-card .sub {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.45);
+      margin-top: 0.25rem;
+    }
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    .chart-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .chart-box h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: rgba(255,255,255,0.8);
+    }
+    canvas {
+      max-height: 300px;
+      width: 100% !important;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: rgba(255,255,255,0.3);
+    }
+    @media (max-width: 700px) {
+      .charts-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <h1>📊 Live Emergency Response Dashboard</h1>
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="charts-row">
+      <div class="chart-box">
+        <h2>🍩 Emergency Types Distribution</h2>
+        <canvas id="pieChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <h2>⏱️ Average Response Time (seconds)</h2>
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+    <div id="overallAvg" style="text-align:center;margin-top:1.5rem;font-size:1rem;color:rgba(255,255,255,0.7)"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'hotelEmergencyAlerts';
+    const TYPES = ['Medical Emergency', 'Fire Emergency', 'Security Issue', 'Natural Disaster'];
+    const TYPE_COLORS = ['#e74c3c', '#e67e22', '#2980b9', '#8e44ad'];
+    const TYPE_ICONS = { 'Medical Emergency':'🏥', 'Fire Emergency':'🔥', 'Security Issue':'🔒', 'Natural Disaster':'🌪️' };
+
+    let pieChartInstance = null;
+    let barChartInstance = null;
+
+    // Parse time string like "02:30:15 PM" or "14:30:15"
+    function parseTimeToSeconds(timeStr) {
+      if (!timeStr) return null;
+      const parts = timeStr.split(' ');
+      let timePart = parts[0];
+      let modifier = parts[1]?.toUpperCase();
+      const timeSegments = timePart.split(':').map(Number);
+      let hours = timeSegments[0] || 0;
+      const minutes = timeSegments[1] || 0;
+      const seconds = timeSegments[2] || 0;
+
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      else if (modifier === 'AM' && hours === 12) hours = 0;
+      // If no modifier, assume 24h format
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    function computeAllMetrics() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const alerts = raw ? JSON.parse(raw) : [];
+      const resolved = alerts.filter(a => a.status === 'Resolved' && a.resolvedAt);
+
+      // Count total per type (all alerts)
+      const totalPerType = {};
+      TYPES.forEach(t => totalPerType[t] = 0);
+      alerts.forEach(a => { if (totalPerType[a.type] !== undefined) totalPerType[a.type]++; });
+
+      // Count resolved per type
+      const resolvedPerType = {};
+      TYPES.forEach(t => resolvedPerType[t] = 0);
+      resolved.forEach(a => { if (resolvedPerType[a.type] !== undefined) resolvedPerType[a.type]++; });
+
+      // Response times per type
+      const responseTimesPerType = {};
+      TYPES.forEach(t => responseTimesPerType[t] = []);
+      resolved.forEach(a => {
+        const start = parseTimeToSeconds(a.time);
+        const end = parseTimeToSeconds(a.resolvedAt);
+        if (start != null && end != null) {
+          const diff = Math.abs(end - start);
+          responseTimesPerType[a.type]?.push(diff);
+        }
+      });
+
+      // Averages
+      const avgPerType = {};
+      TYPES.forEach(t => {
+        const arr = responseTimesPerType[t];
+        avgPerType[t] = arr.length ? (arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1) : 0;
+      });
+
+      // Overall average
+      const allResponseTimes = Object.values(responseTimesPerType).flat();
+      const overallAvg = allResponseTimes.length
+        ? (allResponseTimes.reduce((s, v) => s + v, 0) / allResponseTimes.length).toFixed(1)
+        : 0;
+
+      return {
+        totalAlerts: alerts.length,
+        totalResolved: resolved.length,
+        totalPerType,
+        resolvedPerType,
+        avgPerType,
+        overallAvg
+      };
+    }
+
+    function updateDashboard() {
+      const metrics = computeAllMetrics();
+
+      // Stats cards
+      const statsGrid = document.getElementById('statsGrid');
+      statsGrid.innerHTML = `
+        <div class="stat-card">
+          <div class="label">Total Emergencies</div>
+          <div class="value">${metrics.totalAlerts}</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Resolved</div>
+          <div class="value">${metrics.totalResolved}</div>
+          <div class="sub">${metrics.totalAlerts ? ((metrics.totalResolved / metrics.totalAlerts) * 100).toFixed(0) : 0}% resolved</div>
+        </div>
+        ${TYPES.map((t, i) => `
+          <div class="stat-card">
+            <div class="label">${TYPE_ICONS[t]} ${t}</div>
+            <div class="value">${metrics.totalPerType[t]}</div>
+            <div class="sub">${metrics.resolvedPerType[t]} resolved</div>
+          </div>
+        `).join('')}
+      `;
+
+      document.getElementById('overallAvg').textContent =
+        metrics.totalResolved
+          ? `Overall average response time: ${metrics.overallAvg} seconds (${(metrics.overallAvg / 60).toFixed(1)} min)`
+          : 'No resolved emergencies to compute response time.';
+
+      // Pie chart (distribution of all alerts)
+      const pieCtx = document.getElementById('pieChart').getContext('2d');
+      if (pieChartInstance) pieChartInstance.destroy();
+      pieChartInstance = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+          labels: TYPES,
+          datasets: [{
+            data: TYPES.map(t => metrics.totalPerType[t]),
+            backgroundColor: TYPE_COLORS,
+            borderColor: 'rgba(255,255,255,0.12)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { labels: { color: '#ccc' } }
+          }
+        }
+      });
+
+      // Bar chart (average response time per type)
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      if (barChartInstance) barChartInstance.destroy();
+      barChartInstance = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: TYPES,
+          datasets: [{
+            label: 'Avg response (seconds)',
+            data: TYPES.map(t => Number(metrics.avgPerType[t])),
+            backgroundColor: TYPE_COLORS,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true, ticks: { color: '#ccc' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+            x: { ticks: { color: '#ccc' } }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    // Initial load
+    updateDashboard();
+
+    // Live updates when localStorage is changed from another tab
+    window.addEventListener('storage', e => {
+      if (e.key === STORAGE_KEY) updateDashboard();
+    });
+
+    // Optional: refresh every 5 seconds to catch in-tab changes
+    setInterval(updateDashboard, 5000);
+  </script>
+</body>
+</html>
