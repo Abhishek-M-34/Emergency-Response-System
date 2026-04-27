@@ -8,7 +8,6 @@
 3) Live response‑time dashboard (average response time, bar chart – just a few Chart.js lines).
 4) Floor‑plan zone visualisation (coloured blocks for Room/Lobby/Pool, with active‑incident markers).
 5) Toast notification system instead of the current feedback box.
-6) PWA manifest and service worker (installable on phones).
 
 issues
 1) issues(medical,fire) doesnt assigned to staff.
