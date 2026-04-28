@@ -168,7 +168,7 @@ Built as a **Google Solution Challenge** hackathon project.
 ## 👨‍💻 Contributors
 
 - [Abhishek M](https://github.com/Abhishek-M-34/)– Frontend, Firebase integration, AI implementation, Development, Debugging
-- [Amish Chandran Kasaragod] – Frontend, Documentation, Dashboard, Idea Contribution, Testing
+- [Amish Chandran Kasaragod](https://github.com/Amishck) – Frontend, Documentation, Dashboard, Idea Contribution, Testing
 
 ---
 
