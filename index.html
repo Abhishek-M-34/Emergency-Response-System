@@ -380,62 +380,6 @@
     background: linear-gradient(135deg, #2980b9, #1a5276) !important;
   }
 
-  .floor-map-container {
-    display: none;
-    margin-top: 2rem;
-    padding: 1.5rem 1rem;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .floor-map-container.active {
-    display: block;
-  }
-  .floor-map-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .floor-map-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-  @media (max-width: 600px) {
-    .floor-map-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  .floor-box {
-    background: #2c3e50;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 1rem 0.5rem;
-    text-align: center;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: #fff;
-    transition: background 0.3s, border-color 0.3s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 80px;
-    word-break: break-word;
-  }
-  .floor-box.ecc {
-    background: #1a1a2e;
-    border-color: rgba(255,255,255,0.2);
-    font-size: 0.8rem;
-  }
-  .floor-box.medical { background: #c0392b !important; border-color: #e74c3c; }
-  .floor-box.fire    { background: #d35400 !important; border-color: #e67e22; }
-  .floor-box.security{ background: #1a6fa8 !important; border-color: #2980b9; }
-  .floor-box.natural { background: #6c3483 !important; border-color: #8e44ad; }
 
   @media (max-width: 560px) {
     .nav { padding:0.9rem 1rem; }
@@ -614,22 +558,6 @@
     <div class="comms-input-area"><input type="text" id="staff-comms-input" placeholder="Message to Emergency Control..." autocomplete="off"><button class="comms-send" onclick="sendCommsMessage('Staff', currentStaffId)">Send</button></div>
   </div>
 </section>
-
-<!-- Floor Map (visible only for EC / Staff) -->
-<div id="floor-map-container" class="floor-map-container">
-  <div class="floor-map-title">📍 Live Floor Map</div>
-  <div class="floor-map-grid">
-    <div class="floor-box" id="room-201">Room 201</div>
-    <div class="floor-box" id="room-202">Room 202</div>
-    <div class="floor-box" id="room-203">Room 203</div>
-    <div class="floor-box" id="room-204">Room 204</div>
-    <div class="floor-box" id="room-205">Room 205</div>
-    <div class="floor-box" id="area-lobby">Lobby</div>
-    <div class="floor-box" id="area-swimming-pool">Swimming Pool</div>
-    <div class="floor-box" id="area-gaming">Gaming Room</div>
-    <div class="floor-box ecc" id="area-ecc">ECC</div>
-  </div>
-</div>
 
 <div class="broadcast-modal" id="broadcast-modal">
   <div class="broadcast-card">
@@ -830,57 +758,6 @@ try {
     if (staffContainer) staffContainer.innerHTML = buildHTML(sorted);
   }
 
-  function renderFloorMap() {
-    const activeAlerts = alerts.filter(a => a.status !== 'Resolved');
-    const naturalDisasterActive = activeAlerts.some(a => a.type === 'Natural Disaster');
-
-    const typePriority = ['Medical Emergency', 'Fire Emergency', 'Security Issue'];
-    const typeClassMap = {
-      'Medical Emergency': 'medical',
-      'Fire Emergency': 'fire',
-      'Security Issue': 'security'
-    };
-
-    // Reset all rooms to default
-    document.querySelectorAll('.floor-box:not(.ecc)').forEach(box => {
-      box.className = 'floor-box';
-    });
-
-    // If natural disaster is active, color all non-ECC rooms purple
-    if (naturalDisasterActive) {
-      document.querySelectorAll('.floor-box:not(.ecc)').forEach(box => {
-        box.classList.add('natural');
-      });
-      return;
-    }
-
-    // Otherwise, for each unique location, find the highest priority alert
-    const locationAlerts = {};
-    activeAlerts.forEach(a => {
-      if (!a.location) return;
-      const loc = a.location;
-      if (!locationAlerts[loc]) locationAlerts[loc] = [];
-      locationAlerts[loc].push(a);
-    });
-
-    Object.entries(locationAlerts).forEach(([loc, alertList]) => {
-      let highest = null;
-      for (const type of typePriority) {
-        if (alertList.some(a => a.type === type)) {
-          highest = type;
-          break;
-        }
-      }
-      if (highest) {
-        const box = document.getElementById(`room-${loc.replace(/\s+/g, '-').toLowerCase()}`)
-                 || document.getElementById(`area-${loc.replace(/\s+/g, '-').toLowerCase()}`);
-        if (box && !box.classList.contains('ecc')) {
-          box.classList.add(typeClassMap[highest]);
-        }
-      }
-    });
-  }
-
   function escapeHtml(str) {
     return str.replace(/[&<>]/g, function(m) {
       if (m === '&') return '&amp;';
@@ -959,16 +836,8 @@ try {
     renderAlerts();
     renderGlobalWarningBanner();
     renderCommsPanels();
-
-    // Show floor map only for Staff and EmergencyControl
-    const floorMap = document.getElementById('floor-map-container');
-    if (role === 'EmergencyControl' || role === 'Staff') {
-      floorMap.classList.add('active');
-    } else {
-      floorMap.classList.remove('active');
-    }
-    renderFloorMap();
   }
+
 
   function updateStaffIdentity() {
     const s = staff.find(st => st.id === currentStaffId);
@@ -1141,6 +1010,7 @@ function renderGlobalWarningBanner() {
     const now = new Date();
     const alertObj = {
       id: Date.now(), type, location: selectedLocation,
+      createdAt: Date.now(),
       time: now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }),
       status: 'Pending', source: 'Guest', confidence: 'Unverified',
       escalation: null, escalationRequested: false, assignedTo: [],
@@ -1397,7 +1267,6 @@ function renderGlobalWarningBanner() {
     renderGuestHistory();
     renderGlobalWarningBanner();
     renderCommsPanels();
-    renderFloorMap();
     updateAIAssistantVisibility();
   }
 
@@ -1590,7 +1459,7 @@ async function toggleAIAssistant() {
 
   const type = activeAlert ? activeAlert.type : 'Fire Emergency';
   const location = activeAlert ? activeAlert.location : selectedLocation;
-  const apiKey = 'AIzaSyBO457h9iRU5cK9XXVYEpwMj12cBeErnL4';
+  const apiKey = 'AIzaSyAUfH-z6FbSPv_0CUGj2Ca8L650GF0IyTQ';
 
   const prompt = `A guest in a hotel is facing a "${type}" at "${location}". Give them a short, calm, step‑by‑step safety guide (3 steps) to follow while they wait for help. Use plain, reassuring language. No JSON.`;
 
