@@ -147,9 +147,9 @@ You can change the PINs in the `switchRole` function.
 
 ## 📸 Screenshots
 
-  _Add your own screenshots here (Guest panel, EC dashboard, staff view, analytics page, AI assistant)._
   <img width="240" alt="Screenshot 2026-04-28 152214" src="https://github.com/user-attachments/assets/8b601bcd-2d9b-40ac-a344-97028bbef525" />
-  <img width="230" height="747" alt="Screenshot 2026-04-28 152730" src="https://github.com/user-attachments/assets/57e7dce8-0bf6-4dc4-bc63-d1a2bf4aeb8c" />
+  <img width="230" alt="Screenshot 2026-04-28 152730" src="https://github.com/user-attachments/assets/57e7dce8-0bf6-4dc4-bc63-d1a2bf4aeb8c" />
+  <img width="225" alt="Screenshot 2026-04-28 153236" src="https://github.com/user-attachments/assets/52e7de94-c226-4b20-afa7-cd45403c912d" />
 
 
 ---
