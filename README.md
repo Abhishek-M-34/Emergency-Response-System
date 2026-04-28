@@ -154,8 +154,8 @@ You can change the PINs in the `switchRole` function.
 
 ---
 
-  <img width="1155" alt="Screenshot 2026-04-28 153045" src="https://github.com/user-attachments/assets/56f8650a-d167-48e7-9797-e071ebae719a" />
-  <img width="1892" alt="Screenshot 2026-04-28 152823" src="https://github.com/user-attachments/assets/b8e947a5-638c-421f-b2b9-b3f8a9563c3b" />
+  <img width="1135" alt="Screenshot 2026-04-28 153045" src="https://github.com/user-attachments/assets/56f8650a-d167-48e7-9797-e071ebae719a" />
+  <img width="1862" alt="Screenshot 2026-04-28 152823" src="https://github.com/user-attachments/assets/b8e947a5-638c-421f-b2b9-b3f8a9563c3b" />
 
 
 ---
