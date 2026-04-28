@@ -147,12 +147,10 @@ You can change the PINs in the `switchRole` function.
 
 ## 📸 Screenshots
 
-  <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-  <img width="230" alt="Screenshot 2026-04-28 152708" src="https://github.com/user-attachments/assets/23d1fd9c-d6b8-4390-a037-b5bba7326aba" />
-  <img width="230" alt="Screenshot 2026-04-28 152214" src="https://github.com/user-attachments/assets/8b601bcd-2d9b-40ac-a344-97028bbef525" />
-  <img width="232" alt="Screenshot 2026-04-28 152730" src="https://github.com/user-attachments/assets/57e7dce8-0bf6-4dc4-bc63-d1a2bf4aeb8c" />
-  <img width="230" alt="Screenshot 2026-04-28 153236" src="https://github.com/user-attachments/assets/52e7de94-c226-4b20-afa7-cd45403c912d" />
-  </div>
+<img width="230" alt="Screenshot 2026-04-28 152708" src="https://github.com/user-attachments/assets/23d1fd9c-d6b8-4390-a037-b5bba7326aba" style="margin-right: 10px;" />
+<img width="230" alt="Screenshot 2026-04-28 152214" src="https://github.com/user-attachments/assets/8b601bcd-2d9b-40ac-a344-97028bbef525" style="margin-right: 10px;" />
+<img width="232" alt="Screenshot 2026-04-28 152730" src="https://github.com/user-attachments/assets/57e7dce8-0bf6-4dc4-bc63-d1a2bf4aeb8c" style="margin-right: 10px;" />
+<img width="230" alt="Screenshot 2026-04-28 153236" src="https://github.com/user-attachments/assets/52e7de94-c226-4b20-afa7-cd45403c912d" />
 
   <img width="1155" height="872" alt="Screenshot 2026-04-28 153045" src="https://github.com/user-attachments/assets/56f8650a-d167-48e7-9797-e071ebae719a" />
   <img width="1892" height="868" alt="Screenshot 2026-04-28 152823" src="https://github.com/user-attachments/assets/b8e947a5-638c-421f-b2b9-b3f8a9563c3b" />
