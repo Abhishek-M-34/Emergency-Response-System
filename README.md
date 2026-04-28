@@ -1,4 +1,3 @@
-```markdown
 # 🏨 LOOP ERS – Hotel Emergency Response System
 
 A cloud‑powered, AI‑assisted emergency management platform designed for hotels.
@@ -168,8 +167,8 @@ Built as a **Google Solution Challenge** hackathon project.
 
 ## 👨‍💻 Contributors
 
-- [Abhishek M] – Frontend, Firebase integration, AI implementation, Debugging
-- [Amish Chandran Kasaragod] – Frontend, Documentation, Dashboard, Idea Contribution
+- [Abhishek M](https://github.com/Abhishek-M-34/)– Frontend, Firebase integration, AI implementation, Development, Debugging
+- [Amish Chandran Kasaragod] – Frontend, Documentation, Dashboard, Idea Contribution, Testing
 
 ---
 
@@ -178,4 +177,4 @@ Built as a **Google Solution Challenge** hackathon project.
 - **Live demo:** [https://hotel-ers.web.app](https://hotel-ers.web.app)
 - **Dashboard:** [https://hotel-ers.web.app/dashboard.html](https://hotel-ers.web.app/dashboard.html)
 - **Firebase Console:** [https://console.firebase.google.com/project/hotel-ers](https://console.firebase.google.com/project/hotel-ers)
-```
+
